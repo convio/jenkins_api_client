@@ -161,16 +161,22 @@ module JenkinsApi
       # @param [String] filter a regex to filter view names
       # @param [Bool] ignorecase whether to be case sensitive or not
       #
-      def list(filter = nil, ignorecase = true)
+      def list(filter = nil, options = {:ignorecase => true, :relative_location => "/" } )
+        uri = "/"
+        uri = options[:relative_location].gsub("/", "/view/") unless options[:relative_location] == nil || options[:relative_location] == "/"
         view_names = []
-        response_json = @client.api_get_request("/")
-        response_json["views"].each { |view|
-          if ignorecase
-            view_names << view["name"] if view["name"] =~ /#{filter}/i
-          else
-            view_names << view["name"] if view["name"] =~ /#{filter}/
-          end
-        }
+        response_json = @client.api_get_request( uri )
+        filter = nil || options[:filter]
+        ignorecase = options[:ignorecase] || true
+        unless response_json["views"] == nil
+          response_json["views"].each { |view|
+            if ignorecase
+              view_names << view["name"] if view["name"] =~ /#{filter}/i
+            else
+              view_names << view["name"] if view["name"] =~ /#{filter}/
+            end
+          }
+        end
         view_names
       end
 
@@ -179,7 +185,8 @@ module JenkinsApi
       # @param [String] view_name
       #
       def exists?(view_name)
-        list(view_name).include?(view_name)
+        list(nil, {:relative_location => view_name}) #gets exception if it doesn't exists
+        true
       end
 
       # List jobs in a view
@@ -189,10 +196,11 @@ module JenkinsApi
       # @return [Array] job_names list of jobs in the specified view
       #
       def list_jobs(view_name)
+        relative_location = view_name.gsub("/", "/view/")
         job_names = []
         raise "The view #{view_name} doesn't exists on the server"\
           unless exists?(view_name)
-        response_json = @client.api_get_request("/view/#{view_name}")
+        response_json = @client.api_get_request(relative_location)
         response_json["jobs"].each do |job|
           job_names << job["name"]
         end
