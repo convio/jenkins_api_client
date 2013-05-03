@@ -30,3 +30,5 @@ Gemfile.lock
 *.tmproj
 tmtags
 *.swp
+
+*version.rb
