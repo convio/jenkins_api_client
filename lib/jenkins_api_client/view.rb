@@ -255,6 +255,7 @@ module JenkinsApi
 
       private
       def convert_view_name view_path
+        view_path = view_path.gsub("//", "/")
         view_path[-1] = "" if view_path[-1] == '/' #remove last slash
         view_path.gsub!("/", "/view/")
         view_path
