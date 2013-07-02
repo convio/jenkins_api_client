@@ -44,12 +44,15 @@ module JenkinsApi
       # @param [String] type Type of view to be created. Valid options:
       # listview, myview. Default: listview
       #
-      def create(view_name, type = "listview")
+      def create(view_name, view_path = "/", type = "listview")
+        view_path = convert_view_name view_path
         mode = case type
         when "listview"
           "hudson.model.ListView"
         when "myview"
           "hudson.model.MyView"
+         when "sectionview"
+           "hudson.plugins.sectioned_view.SectionedView"
         else
           raise "Type #{type} is not supported by Jenkins."
         end
@@ -61,7 +64,7 @@ module JenkinsApi
             "mode" => mode
           }.to_json
         }
-        @client.api_post_request("/createView", initial_post_params)
+        @client.api_post_request("#{view_path}/createView", initial_post_params)
       end
 
       # Creates a listview by accepting the given parameters hash
@@ -135,16 +138,18 @@ module JenkinsApi
         post_params.merge!("filterExecutors" => "on") if params[:filter_executors]
         post_params.merge!("useincluderegex" => "on",
                            "includeRegex" => params[:regex]) if params[:regex]
-        @client.api_post_request("/view/#{params[:name]}/configSubmit",
+        @client.api_post_request("#{convert_view_name(view_nameparams[:name])}/configSubmit",
                                  post_params)
+        view_name = convert_view_name(view_name)
       end
 
       # Delete a view
       #
-      # @param [String] view_name
+      # @param [String] view_path
       #
-      def delete(view_name)
-        @client.api_post_request("/view/#{view_name}/doDelete")
+      def delete(view_path)
+        view_path = convert_view_name(view_path)
+        @client.api_post_request("#{view_path}/doDelete")
       end
 
       # Deletes all views (except the All view) in Jenkins.
@@ -163,7 +168,7 @@ module JenkinsApi
       #
       def list(filter = nil, options = {:ignorecase => true, :relative_location => "/" } )
         uri = "/"
-        uri = options[:relative_location].gsub("/", "/view/") unless options[:relative_location] == nil || options[:relative_location] == "/"
+        uri = convert_view_name(options[:relative_location]) unless options[:relative_location] == nil || options[:relative_location] == "/"
         view_names = []
         response_json = @client.api_get_request( uri )
         filter = nil || options[:filter]
@@ -182,10 +187,10 @@ module JenkinsApi
 
       # Checks if the given view exists in Jenkins
       #
-      # @param [String] view_name
+      # @param [String] view_path
       #
-      def exists?(view_name)
-        list(nil, {:relative_location => view_name}) #gets exception if it doesn't exists
+      def exists?(view_path)
+        list(nil, {:relative_location => view_path}) #gets exception if it doesn't exists
         true
       end
 
@@ -195,8 +200,8 @@ module JenkinsApi
       #
       # @return [Array] job_names list of jobs in the specified view
       #
-      def list_jobs(view_name)
-        relative_location = view_name.gsub("/", "/view/")
+      def list_jobs(view_path)
+        relative_location = convert_view_name(view_path)
         job_names = []
         raise "The view #{view_name} doesn't exists on the server"\
           unless exists?(view_name)
@@ -209,21 +214,23 @@ module JenkinsApi
 
       # Add a job to view
       #
-      # @param [String] view_name
+      # @param [String] view_path
       # @param [String] job_name
       #
-      def add_job(view_name, job_name)
-        post_msg = "/view/#{view_name}/addJobToView?name=#{job_name}"
+      def add_job(view_path, job_name)
+        view_path = convert_view_name(view_path)
+        post_msg = "#{view_path}/addJobToView?name=#{job_name}"
         @client.api_post_request(post_msg)
       end
 
       # Remove a job from view
       #
-      # @param [String] view_name
+      # @param [String] view_path
       # @param [String] job_name
       #
-      def remove_job(view_name, job_name)
-        post_msg = "/view/#{view_name}/removeJobFromView?name=#{job_name}"
+      def remove_job(view_path, job_name)
+        view_path = convert_view_name(view_path)
+        post_msg = "#{view_path}/removeJobFromView?name=#{job_name}"
         @client.api_post_request(post_msg)
       end
 
@@ -232,17 +239,27 @@ module JenkinsApi
       # @param [String] view_name
       #
       def get_config(view_name)
-        @client.get_config("/view/#{view_name}")
+        view_name = convert_view_name(view_name)
+        @client.get_config("#{view_name}")
       end
 
       # Post the configuration of a view given the view name and the config.xml
       #
-      # @param [String] view_name
+      # @param [String] view_path
       # @param [String] xml
       #
-      def post_config(view_name, xml)
-        @client.post_config("/view/#{view_name}/config.xml", xml)
+      def post_config(view_path, xml)
+        view_path = convert_view_name(view_path)
+        @client.post_config("#{view_path}/config.xml", xml)
       end
+
+      private
+      def convert_view_name view_path
+        view_path[-1] = "" if view_path[-1] == '/' #remove last slash
+        view_path.gsub!("/", "/view/")
+        view_path
+      end
+
 
     end
   end
