@@ -203,8 +203,8 @@ module JenkinsApi
       def list_jobs(view_path)
         relative_location = convert_view_name(view_path)
         job_names = []
-        raise "The view #{view_name} doesn't exists on the server"\
-          unless exists?(view_name)
+        raise "The view #{view_path} doesn't exists on the server"\
+          unless exists?(view_path)
         response_json = @client.api_get_request(relative_location)
         response_json["jobs"].each do |job|
           job_names << job["name"]
