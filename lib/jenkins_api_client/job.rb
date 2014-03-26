@@ -489,6 +489,27 @@ module JenkinsApi
         @client.api_get_request("/job/#{job_name}")['nextBuildNumber'].to_i - 1
       end
 
+      def get_last_completed_build(job_name)
+        build = @client.api_get_request("/job/#{job_name}")['lastCompletedBuild']
+        unless build.nil?
+          @client.api_get_request("/job/#{job_name}/#{build['number']}")
+        end
+      end
+
+      def get_last_failed_build(job_name)
+        build = @client.api_get_request("/job/#{job_name}")['lastFailedBuild']
+        unless build.nil?
+          @client.api_get_request("/job/#{job_name}/#{build['number']}")
+        end
+      end
+
+      def get_last_successful_build(job_name)
+        build = @client.api_get_request("/job/#{job_name}")['lastSuccessfulBuild']
+        unless build.nil?
+          @client.api_get_request("/job/#{job_name}/#{build['number']}")
+        end
+      end
+
       # Build a job given the name of the job
       # You can optionally pass in a list of params for Jenkins to use for parameterized builds
       #
